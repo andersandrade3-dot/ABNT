@@ -1,0 +1,931 @@
+/* ==========================================================================
+   Simulador de Páginas A4, Interface estilo LibreOffice Writer e Laboratórios
+   ========================================================================== */
+
+/* Container estilo mesa de edição do Writer */
+.writer-window {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.writer-titlebar {
+  background: #1e293b;
+  color: #f8fafc;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.writer-titlebar-file {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.writer-file-badge {
+  background: #2563eb;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.writer-toolbar {
+  background: var(--bg-surface-alt);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.45rem 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.writer-tool-pill {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Régua horizontal simulada (0 a 16 cm da mancha gráfica A4) */
+.writer-ruler {
+  background: #e2e8f0;
+  color: #334155;
+  border-bottom: 1px solid #cbd5e1;
+  padding: 0.22rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  user-select: none;
+}
+
+[data-theme="dark"] .writer-ruler {
+  background: #1e293b;
+  color: #94a3b8;
+  border-bottom-color: #334155;
+}
+
+.writer-desk {
+  background: var(--bg-desk);
+  padding: 1rem 0.65rem;
+}
+
+@media (min-width: 640px) {
+  .writer-desk {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+.writer-statusbar {
+  background: var(--bg-surface-alt);
+  border-top: 1px solid var(--border-subtle);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* ==========================================================================
+   Folha A4 Simulada (sempre papel claro com tinta escura, como no Writer)
+   ========================================================================== */
+
+.a4-sheet {
+  background: #ffffff;
+  color: #111827;
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto 1.25rem auto;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.16);
+  border: 1px solid #cbd5e1;
+  position: relative;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+  padding: 1.75rem 1.25rem 1.35rem 1.75rem;
+  transition: padding 220ms ease, font-family 180ms ease;
+}
+
+.a4-sheet:last-child {
+  margin-bottom: 0;
+}
+
+@media (min-width: 640px) {
+  .a4-sheet {
+    padding: 2.5rem 1.75rem 1.85rem 2.5rem;
+  }
+}
+
+.a4-sheet.font-times {
+  font-family: 'Times New Roman', Times, Georgia, serif;
+}
+
+.a4-sheet.font-arial {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.a4-sheet.font-comic {
+  font-family: 'Trebuchet MS', 'Comic Sans MS', cursive, sans-serif;
+}
+
+.a4-sheet p {
+  color: #111827;
+}
+
+.a4-page-tag {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-family: var(--font-ui);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.a4-page-number {
+  font-size: 0.78rem; /* ~10pt proporcional */
+  color: #111827;
+  margin-bottom: 0.75rem;
+  line-height: 1;
+}
+
+.a4-page-number.top-right {
+  text-align: right;
+}
+
+.a4-page-number.top-left {
+  text-align: left;
+}
+
+.a4-page-number.bottom-center-err {
+  text-align: center;
+  margin-top: 1rem;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+  color: #991b1b;
+}
+
+/* ==========================================================================
+   Simulador Proporcional da Folha A4 (Módulo 1 e Laboratório de Margens)
+   ========================================================================== */
+
+.a4-proportional-stage {
+  background: var(--bg-desk);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.a4-proportional-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 350px;
+  aspect-ratio: 210 / 297;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.2);
+  border: 1px solid #94a3b8;
+  overflow: hidden;
+  transition: aspect-ratio 240ms ease, max-width 240ms ease;
+}
+
+.a4-proportional-sheet.landscape {
+  max-width: 440px;
+  aspect-ratio: 297 / 210;
+}
+
+/* Mancha gráfica interna calculada dinamicamente via variáveis CSS */
+.a4-mancha-box {
+  position: absolute;
+  top: var(--m-top-pct, 10.1%);
+  right: var(--m-right-pct, 9.52%);
+  bottom: var(--m-bottom-pct, 6.73%);
+  left: var(--m-left-pct, 14.28%);
+  border: 1.5px dashed #1d4ed8;
+  background: rgba(219, 234, 254, 0.24);
+  padding: 0.55rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: all 200ms ease;
+}
+
+.a4-mancha-box.is-valid {
+  border-color: #15803d;
+  background: rgba(220, 252, 231, 0.28);
+}
+
+.a4-mancha-heading {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.15rem;
+}
+
+.a4-mancha-line {
+  height: 5px;
+  background: #cbd5e1;
+  border-radius: 2px;
+  width: 100%;
+}
+
+.a4-mancha-line.indent {
+  width: 86%;
+  margin-left: 14%;
+}
+
+.a4-mancha-line.short {
+  width: 62%;
+}
+
+.a4-mancha-quote {
+  margin-left: 25%; /* 4cm / 16cm = 25% */
+  border-left: 2px solid #64748b;
+  padding-left: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 3px;
+  margin-bottom: 3px;
+}
+
+.a4-mancha-quote .a4-mancha-line {
+  height: 3.5px;
+  background: #94a3b8;
+}
+
+/* Indicadores de medida nas 4 margens (inspirados nas Figuras 31 e 32 do Manual IFCE) */
+.margin-pill {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 0.67rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+  white-space: nowrap;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.margin-pill.ok {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.margin-pill.err {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.margin-pill.pos-top {
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.margin-pill.pos-bottom {
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.margin-pill.pos-left {
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.margin-pill.pos-right {
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.a4-pagenum-indicator {
+  position: absolute;
+  top: 5.2%;
+  font-family: Arial, sans-serif;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #1e40af;
+  background: rgba(219, 234, 254, 0.9);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.a4-pagenum-indicator.anverso {
+  right: var(--m-right-pct, 9.52%);
+}
+
+.a4-pagenum-indicator.verso {
+  left: var(--m-left-pct, 9.52%);
+}
+
+/* ==========================================================================
+   Elementos Tipográficos Acadêmicos dentro da Folha A4
+   ========================================================================== */
+
+.doc-title-centered {
+  text-align: center;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.96rem; /* 12pt proporcional */
+  margin: 0 0 1.1rem 0;
+  color: #111827;
+}
+
+.doc-h1 {
+  font-size: 0.96rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: left;
+  margin: 0 0 0.9rem 0;
+  color: #111827;
+}
+
+.doc-h2 {
+  font-size: 0.96rem;
+  font-weight: 700;
+  text-transform: none;
+  text-align: left;
+  margin: 0.9rem 0;
+  color: #111827;
+}
+
+.doc-h3 {
+  font-size: 0.96rem;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: none;
+  text-align: left;
+  margin: 0.9rem 0;
+  color: #111827;
+}
+
+.doc-h4 {
+  font-size: 0.96rem;
+  font-weight: 400;
+  font-style: italic;
+  text-transform: none;
+  text-align: left;
+  margin: 0.9rem 0;
+  color: #111827;
+}
+
+.doc-h5 {
+  font-size: 0.96rem;
+  font-weight: 400;
+  font-style: normal;
+  text-transform: none;
+  text-align: left;
+  margin: 0.9rem 0;
+  color: #111827;
+}
+
+.doc-p {
+  font-size: 0.95rem; /* 12pt proporcional */
+  line-height: 1.5;
+  text-align: justify;
+  text-indent: 2.15rem; /* ~1,25 cm proporcional à largura da mancha */
+  margin: 0;
+  color: #111827;
+}
+
+.doc-long-quote {
+  margin: 0.95rem 0 0.95rem 25%; /* 4cm de 16cm = 25% */
+  font-size: 0.8rem; /* 10pt proporcional */
+  line-height: 1.15; /* Espaçamento simples */
+  text-align: justify;
+  text-indent: 0;
+  color: #111827;
+}
+
+.doc-footnote-area {
+  margin-top: 1.35rem;
+  padding-top: 0.45rem;
+  position: relative;
+}
+
+.doc-footnote-line {
+  width: 31.25%; /* Filete de 5 cm dentro de 16 cm de mancha gráfica */
+  height: 1px;
+  background: #111827;
+  margin-bottom: 0.35rem;
+}
+
+.doc-footnote-line.full-err {
+  width: 100%;
+  background: #991b1b;
+}
+
+.doc-footnote-item {
+  font-size: 0.78rem; /* 10pt */
+  line-height: 1.15; /* Simples */
+  text-align: justify;
+  padding-left: 0.85rem;
+  text-indent: -0.85rem; /* Destaca o expoente a partir da 2ª linha */
+  margin: 0;
+  color: #111827;
+}
+
+.doc-ref-item {
+  font-size: 0.93rem; /* 12pt conforme Seção 12.3 do Manual IFCE */
+  line-height: 1.18; /* Espaço simples */
+  text-align: left; /* Alinhadas somente à margem esquerda */
+  text-indent: 0;
+  margin: 0 0 0.95rem 0; /* 1 linha em branco de espaço simples entre referências */
+  color: #111827;
+  overflow-wrap: anywhere;
+}
+
+/* Sumário Simulado (Figura 20 do Manual IFCE) */
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.toc-row {
+  display: flex;
+  align-items: baseline;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #111827;
+}
+
+.toc-num {
+  width: 3.3rem;
+  flex-shrink: 0;
+}
+
+.toc-title {
+  flex-shrink: 0;
+  max-width: 72%;
+}
+
+.toc-dots {
+  flex: 1;
+  border-bottom: 1px dotted #64748b;
+  margin: 0 0.35rem;
+  min-width: 1rem;
+}
+
+.toc-page {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   Atividade Principal: Revisão de um Documento Acadêmico (Hotspots Interativos)
+   ========================================================================== */
+
+.review-workspace {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .review-workspace {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+}
+
+.inspector-sticky {
+  position: static;
+}
+
+@media (min-width: 1024px) {
+  .inspector-sticky {
+    position: sticky;
+    top: calc(var(--header-h) + 1rem);
+    max-height: calc(100vh - var(--header-h) - 2rem);
+    overflow-y: auto;
+  }
+}
+
+/* Região clicável/tocável dentro do documento simulado */
+.review-hotspot {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: inherit;
+  background: transparent;
+  border: 2px dashed transparent;
+  border-radius: 6px;
+  padding: 0.45rem 0.5rem;
+  margin: 0.35rem 0;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.review-hotspot.is-error {
+  border-color: #ef4444;
+  background: rgba(254, 226, 226, 0.38);
+}
+
+.review-hotspot.is-error:hover {
+  background: rgba(254, 202, 202, 0.58);
+}
+
+.review-hotspot.is-fixed {
+  border-style: solid;
+  border-color: #86efac;
+  background: rgba(220, 252, 231, 0.25);
+}
+
+.review-hotspot.is-selected {
+  border-style: solid;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
+  background: rgba(219, 234, 254, 0.42);
+}
+
+.hotspot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-ui);
+  font-size: 0.69rem;
+  font-weight: 700;
+  padding: 0.12rem 0.48rem;
+  border-radius: 999px;
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.01em;
+}
+
+.review-hotspot.is-error .hotspot-chip {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.review-hotspot.is-fixed .hotspot-chip {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+/* Barra rápida de navegação entre os 10 problemas (ótima para celular) */
+.problem-index-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.problem-pill-btn {
+  min-height: 38px;
+  padding: 0.32rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all var(--transition);
+}
+
+.problem-pill-btn.fixed {
+  border-color: var(--status-ok-border);
+  background: var(--status-ok-bg);
+  color: var(--status-ok);
+}
+
+.problem-pill-btn.active {
+  background: #1e40af;
+  color: #ffffff;
+  border-color: #1e40af;
+}
+
+/* Painel de Inspeção (4 blocos pedagógicos exigidos na Seção 4) */
+.inspector-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 1.2rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.inspector-section {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.inspector-section:last-of-type {
+  border-bottom: none;
+}
+
+.inspector-kicker {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.inspector-kicker.err { color: var(--status-err); }
+.inspector-kicker.rule { color: var(--status-ok); }
+.inspector-kicker.writer { color: var(--writer-accent); }
+.inspector-kicker.preview { color: var(--text-muted); }
+
+.mini-preview-paper {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #15803d;
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  margin-top: 0.45rem;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.88rem;
+}
+
+/* ==========================================================================
+   Diagramas Visuais dos Módulos (Paginação, Recuo x Margem, Organizador)
+   ========================================================================== */
+
+/* Esquema de páginas contadas vs. numeradas (Módulo 4) */
+.page-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.mini-page-card {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1.5px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  padding: 0.7rem;
+  min-height: 158px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  box-shadow: var(--shadow-xs);
+}
+
+.mini-page-card.is-cover {
+  border-style: dashed;
+  background: #f8fafc;
+}
+
+.mini-page-card.is-pretextual {
+  border-color: #f59e0b;
+}
+
+.mini-page-card.is-textual {
+  border-color: #16a34a;
+}
+
+.mini-page-num-corner {
+  align-self: flex-end;
+  font-family: Arial, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  min-height: 20px;
+}
+
+.mini-page-num-corner.visible {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.mini-page-num-corner.hidden-num {
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.68rem;
+}
+
+.mini-page-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0.5rem 0;
+  color: #0f172a;
+}
+
+.mini-page-meta {
+  font-size: 0.72rem;
+  text-align: center;
+  padding: 0.2rem 0.35rem;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 600;
+}
+
+.break-badge-row {
+  background: var(--writer-accent-soft);
+  color: var(--writer-accent);
+  border: 1px dashed var(--writer-accent-border);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 0.65rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Organizador de Títulos (acessível por toque + arrastar no desktop) */
+.outline-organizer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.outline-item-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.outline-item-card[draggable="true"] {
+  cursor: grab;
+}
+
+.outline-item-card.dragging {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.outline-item-card.level-1 { margin-left: 0; border-left: 4px solid #14532d; }
+.outline-item-card.level-2 { margin-left: 0.9rem; border-left: 4px solid #1e40af; }
+.outline-item-card.level-3 { margin-left: 1.8rem; border-left: 4px solid #7c3aed; }
+.outline-item-card.level-post { margin-left: 0; border-left: 4px solid #475569; }
+
+.outline-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.icon-action-btn {
+  min-width: 38px;
+  min-height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface-alt);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-grid;
+  place-items: center;
+  transition: all var(--transition);
+}
+
+.icon-action-btn:hover:not(:disabled) {
+  background: var(--writer-accent-soft);
+  border-color: var(--writer-accent);
+  color: var(--writer-accent);
+}
+
+.icon-action-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* Anatomia Visual Margem x Recuo x Entrelinha (Módulo 2) */
+.anatomy-diagram {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  position: relative;
+}
+
+.anatomy-margin-zone {
+  border: 2px dashed #94a3b8;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 6px;
+}
+
+.anatomy-text-zone {
+  background: #ffffff;
+  border: 1.5px solid #2563eb;
+  padding: 0.85rem;
+  border-radius: 4px;
+}
+
+.anatomy-indent-bar {
+  display: inline-block;
+  width: 2.3rem;
+  height: 0.85rem;
+  background: #dcfce7;
+  border: 1px solid #16a34a;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+  border-radius: 2px;
+}
+
+.anatomy-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.anatomy-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* Bloco copiável para a Oficina Prática */
+.copy-sample-box {
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  margin-top: 0.65rem;
+  font-size: 0.87rem;
+  color: var(--text-secondary);
+}
+
+.copy-sample-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
